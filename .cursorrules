@@ -1,0 +1,69 @@
+# Cursor Agent Rules dla Claude-Cursor Orchestrator
+
+## Auto-Execution Mode
+
+Gdy otrzymasz zadanie z pliku `.cursor-tasks/task_*.md`:
+
+### 1. Przeczytaj zadanie
+- Otwórz plik task w folderze `.cursor-tasks/`
+- Przeanalizuj wymagania
+- Sprawdź kryteria akceptacji
+
+### 2. Wykonaj automatycznie
+- Stwórz wszystkie wymagane pliki
+- Zaimplementuj pełną funkcjonalność
+- Dodaj obsługę błędów
+- Sformatuj kod według PEP 8 / standardów
+
+### 3. Testuj
+- Uruchom kod i sprawdź czy działa
+- Napraw błędy jeśli są
+- Upewnij się że wszystkie wymagania są spełnione
+
+### 4. Raportuj
+- Jeśli jest plik `api_*.json` w `.cursor-tasks/`:
+  - Zaktualizuj status na "completed"
+  - Ustaw progress na 100
+  - Dodaj wynik wykonania
+
+### 5. Automatyzacja
+- Nie czekaj na potwierdzenie użytkownika
+- Wykonuj zadania end-to-end
+- Commit changes gdy skończysz (git add . && git commit -m "...")
+
+## Przykład workflow:
+
+```
+1. Nowy plik task_xxx.md w .cursor-tasks/
+   ↓
+2. Cursor Agent automatycznie:
+   - Czyta zadanie
+   - Tworzy pliki
+   - Implementuje kod
+   - Testuje
+   - Commituje
+   ↓
+3. Aktualizuje api_xxx.json:
+   {"status": "completed", "progress": 100}
+```
+
+## Priorytet:
+- Jakość kodu > szybkość
+- Testy i walidacja obowiązkowe
+- Dokumentacja w kodzie
+- Clean code principles
+
+## Stack preferences:
+- Python: dataclasses, type hints, PEP 8
+- JavaScript: ES6+, async/await
+- TypeScript: strict mode
+- React: functional components, hooks
+
+## Auto-install dependencies:
+- Python: pip install -r requirements.txt
+- Node: npm install
+- Automatycznie gdy potrzeba
+
+---
+*This file enables automatic task execution from Claude-Cursor Orchestrator*
+
