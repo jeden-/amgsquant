@@ -2,35 +2,31 @@ import { MachineType, MachineStatus, Prisma } from '@prisma/client';
 
 export const machines: Prisma.MachineCreateInput[] = [
   {
-    name: 'Plotter Latex HP 1',
+    name: 'HP Latex 370',
     type: MachineType.PLOTTER_LATEX,
     status: MachineStatus.IDLE,
-    speedM2PerHour: 25.0,
-    maintenanceHours: 0,
+    speedM2PerHour: 12,
     active: true,
   },
   {
-    name: 'Plotter Solvent HP 2',
+    name: 'Roland VersaCAMM',
     type: MachineType.PLOTTER_SOLVENT,
     status: MachineStatus.IDLE,
-    speedM2PerHour: 20.0,
-    maintenanceHours: 0,
+    speedM2PerHour: 10,
     active: true,
   },
   {
-    name: 'Laminator 1',
+    name: 'GMP Excelam Q6',
     type: MachineType.LAMINATOR,
     status: MachineStatus.IDLE,
-    speedM2PerHour: 50.0,
-    maintenanceHours: 0,
+    speedM2PerHour: 15,
     active: true,
   },
   {
-    name: 'Ploter tnący 1',
+    name: 'Summa S2 T160',
     type: MachineType.CUTTER,
     status: MachineStatus.IDLE,
-    speedM2PerHour: 30.0,
-    maintenanceHours: 0,
+    speedM2PerHour: 20,
     active: true,
   },
 ];
