@@ -1,69 +1,56 @@
-# Cursor Agent Rules dla Claude-Cursor Orchestrator
+# AMGSquant Print System - Cursor AI Rules
 
-## Auto-Execution Mode
+## Project Context
+This is a monorepo project for a large-format printing house management system.
+- E-commerce frontend with product configurators
+- Backend API with production queue management
+- Real-time pricing engine
+- File validation (preflight)
+- Warehouse management
 
-Gdy otrzymasz zadanie z pliku `.cursor-tasks/task_*.md`:
+## Tech Stack
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Zustand
+- **Backend**: NestJS, Prisma, PostgreSQL, Redis, RabbitMQ
+- **Monorepo**: pnpm workspaces + Turbo
 
-### 1. Przeczytaj zadanie
-- Otwórz plik task w folderze `.cursor-tasks/`
-- Przeanalizuj wymagania
-- Sprawdź kryteria akceptacji
+## Code Style
+- Use TypeScript strict mode
+- Prefer functional components and hooks
+- Use async/await over promises
+- Error handling with try-catch
+- Always add JSDoc comments for public methods
+- Follow ESLint rules
 
-### 2. Wykonaj automatycznie
-- Stwórz wszystkie wymagane pliki
-- Zaimplementuj pełną funkcjonalność
-- Dodaj obsługę błędów
-- Sformatuj kod według PEP 8 / standardów
+## File Organization
+- Group by feature, not by file type
+- Keep components small and focused
+- Separate business logic from UI
+- Use index.ts for clean imports
 
-### 3. Testuj
-- Uruchom kod i sprawdź czy działa
-- Napraw błędy jeśli są
-- Upewnij się że wszystkie wymagania są spełnione
+## Naming Conventions
+- PascalCase for components and classes
+- camelCase for functions and variables
+- UPPER_SNAKE_CASE for constants
+- kebab-case for file names
 
-### 4. Raportuj
-- Jeśli jest plik `api_*.json` w `.cursor-tasks/`:
-  - Zaktualizuj status na "completed"
-  - Ustaw progress na 100
-  - Dodaj wynik wykonania
+## Best Practices
+- Write unit tests for business logic
+- Use DTOs for API validation
+- Implement proper error handling
+- Add loading and error states
+- Optimize database queries
+- Cache frequently accessed data in Redis
 
-### 5. Automatyzacja
-- Nie czekaj na potwierdzenie użytkownika
-- Wykonuj zadania end-to-end
-- Commit changes gdy skończysz (git add . && git commit -m "...")
+## Security
+- Never commit secrets or API keys
+- Validate all user inputs
+- Use parameterized queries
+- Implement rate limiting
+- Use HTTPS in production
 
-## Przykład workflow:
-
-```
-1. Nowy plik task_xxx.md w .cursor-tasks/
-   ↓
-2. Cursor Agent automatycznie:
-   - Czyta zadanie
-   - Tworzy pliki
-   - Implementuje kod
-   - Testuje
-   - Commituje
-   ↓
-3. Aktualizuje api_xxx.json:
-   {"status": "completed", "progress": 100}
-```
-
-## Priorytet:
-- Jakość kodu > szybkość
-- Testy i walidacja obowiązkowe
-- Dokumentacja w kodzie
-- Clean code principles
-
-## Stack preferences:
-- Python: dataclasses, type hints, PEP 8
-- JavaScript: ES6+, async/await
-- TypeScript: strict mode
-- React: functional components, hooks
-
-## Auto-install dependencies:
-- Python: pip install -r requirements.txt
-- Node: npm install
-- Automatycznie gdy potrzeba
-
----
-*This file enables automatic task execution from Claude-Cursor Orchestrator*
-
+## Performance
+- Lazy load images and components
+- Implement pagination for large lists
+- Use React Query for data fetching
+- Optimize bundle size
+- Use CDN for static assets
