@@ -1,0 +1,587 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// UŻYTKOWNICY I AUTORYZACJA
+// ============================================
+
+model User {
+  id                String        @id @default(uuid())
+  email             String        @unique
+  password          String
+  firstName         String
+  lastName          String
+  phone             String?
+  
+  // Typ użytkownika
+  type              UserType      @default(CUSTOMER)
+  
+  // Status konta
+  status            UserStatus    @default(ACTIVE)
+  emailVerified     Boolean       @default(false)
+  emailVerifiedAt   DateTime?
+  
+  // Dane firmy (dla B2B)
+  companyName       String?
+  nip               String?       @unique
+  regon             String?
+  
+  // Preferencje
+  newsletter        Boolean       @default(false)
+  marketing         Boolean       @default(false)
+  
+  // Timestamps
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt       DateTime?
+
+  // Relacje
+  addresses         Address[]
+  orders            Order[]
+  files             File[]
+
+  @@index([email])
+  @@index([type])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserType {
+  CUSTOMER    // Klient indywidualny
+  BUSINESS    // Klient biznesowy
+  AGENCY      // Agencja reklamowa
+  ADMIN       // Administrator
+  OPERATOR    // Operator maszyn
+}
+
+enum UserStatus {
+  ACTIVE      // Aktywny
+  INACTIVE    // Nieaktywny
+  SUSPENDED   // Zawieszony
+  DELETED     // Usunięty
+}
+
+model Address {
+  id          String    @id @default(uuid())
+  userId      String
+  
+  // Typ adresu
+  type        AddressType @default(SHIPPING)
+  
+  // Dane adresowe
+  firstName   String
+  lastName    String
+  company     String?
+  street      String
+  streetNumber String
+  apartment   String?
+  city        String
+  postalCode  String
+  country     String    @default("Polska")
+  
+  // Dodatkowe informacje
+  phone       String?
+  notes       String?   @db.Text
+  
+  // Status
+  isDefault   Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacje
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingOrders  Order[]   @relation("ShippingAddress")
+  billingOrders   Order[]   @relation("BillingAddress")
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+enum AddressType {
+  SHIPPING  // Adres dostawy
+  BILLING   // Adres rozliczeniowy
+}
+
+// ============================================
+// PRODUKTY I KATALOG
+// ============================================
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?   @db.Text
+  image       String?
+  
+  // Hierarchia
+  parentId    String?
+  sortOrder   Int       @default(0)
+  
+  // Status
+  active      Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacje
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@index([parentId])
+  @@index([active])
+  @@map("categories")
+}
+
+model Product {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  
+  // Kategoria
+  categoryId  String
+  
+  // Specyfikacja
+  minWidth    Float     // mm
+  maxWidth    Float     // mm
+  minHeight   Float     // mm
+  maxHeight   Float     // mm
+  minArea     Float     // m²
+  maxArea     Float     // m²
+  
+  // Cennik
+  basePrice   Float     // PLN/m²
+  
+  // Opcje
+  options     Json      // konfigurowalne opcje (laminat, oczka, itp.)
+  
+  // Status
+  active      Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacje
+  category    Category    @relation(fields: [categoryId], references: [id])
+  materials   Material[]
+  orderItems  OrderItem[]
+
+  @@index([categoryId])
+  @@index([active])
+  @@map("products")
+}
+
+model Material {
+  id          String        @id @default(uuid())
+  name        String
+  type        MaterialType
+  width       Float         // mm
+  thickness   Float?        // μm
+  
+  // Cennik
+  pricePerM2  Float         // PLN/m²
+  
+  // Stan magazynowy
+  stockMeters Float         @default(0) // metry
+  minStock    Float         @default(10) // minimalny stan
+  
+  // Status
+  active      Boolean       @default(true)
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relacje
+  products      Product[]
+  orderItems    OrderItem[]
+  stockMovements StockMovement[]
+
+  @@index([type])
+  @@index([active])
+  @@map("materials")
+}
+
+enum MaterialType {
+  BANNER_VINYL     // Baner winylowy
+  POSTER_PAPER     // Papier plakatowy
+  SELF_ADHESIVE    // Folia samoprzylepna
+  BACKLIT_FILM     // Folia backlit
+  MESH_BANNER      // Baner siatkowy
+  CANVAS           // Płótno
+  PHOTO_PAPER      // Papier fotograficzny
+}
+
+// ============================================
+// ZAMÓWIENIA
+// ============================================
+
+model Order {
+  id                String        @id @default(uuid())
+  orderNumber       String        @unique // ORD-2025-001
+  userId            String
+  status            OrderStatus   @default(PENDING_PAYMENT)
+  
+  // Ceny
+  subtotal          Float
+  discount          Float         @default(0)
+  shippingCost      Float
+  rushFee           Float         @default(0)
+  total             Float
+  
+  // Termin
+  rushType          RushType      @default(STANDARD)
+  estimatedDelivery DateTime?
+  
+  // Płatność
+  paymentMethod     PaymentMethod?
+  paymentStatus     PaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  
+  // Wysyłka
+  shippingAddressId String
+  billingAddressId  String
+  shippingMethod    ShippingMethod?
+  trackingNumber    String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  
+  // Notatki
+  customerNotes     String?       @db.Text
+  internalNotes     String?       @db.Text
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relacje
+  user              User          @relation(fields: [userId], references: [id])
+  shippingAddress   Address       @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress    Address       @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  items             OrderItem[]
+  productionJobs    ProductionJob[]
+  statusHistory     OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT   // Oczekuje na płatność
+  PAID              // Opłacone
+  PREFLIGHT_CHECK   // Sprawdzanie plików
+  PREFLIGHT_FAILED  // Błędy w plikach
+  QUEUED            // W kolejce produkcji
+  IN_PRODUCTION     // W produkcji
+  FINISHING         // Wykończanie
+  QUALITY_CONTROL   // Kontrola jakości
+  READY_TO_SHIP     // Gotowe do wysyłki
+  SHIPPED           // Wysłane
+  DELIVERED         // Dostarczone
+  CANCELLED         // Anulowane
+}
+
+enum RushType {
+  STANDARD      // 72h - cena bazowa
+  EXPRESS_48H   // 48h - +30%
+  EXPRESS_24H   // 24h - +50%
+  SAME_DAY      // tego samego dnia - +100%
+}
+
+enum PaymentMethod {
+  CARD              // Karta płatnicza
+  BLIK              // BLIK
+  TRANSFER          // Przelew tradycyjny
+  CASH_ON_DELIVERY  // Pobranie
+  INVOICE_14        // Faktura 14 dni
+  INVOICE_30        // Faktura 30 dni
+  INVOICE_60        // Faktura 60 dni (agencje)
+}
+
+enum PaymentStatus {
+  PENDING   // Oczekuje
+  PAID      // Opłacone
+  FAILED    // Nieudane
+  REFUNDED  // Zwrócone
+}
+
+enum ShippingMethod {
+  INPOST_PACZKOMAT  // InPost Paczkomat
+  INPOST_COURIER    // InPost Kurier
+  DPD               // DPD
+  DHL               // DHL
+  UPS               // UPS
+  PICKUP            // Odbiór osobisty
+}
+
+model OrderItem {
+  id               String     @id @default(uuid())
+  orderId          String
+  productId        String
+  
+  // Opis produktu
+  name             String
+  quantity         Int
+  width            Float // mm
+  height           Float // mm
+  area             Float // m²
+  
+  // Materiał i opcje
+  materialId       String
+  finishingOptions Json // laminat, oczka, cięcie, itp.
+  
+  // Ceny
+  unitPrice        Float
+  totalPrice       Float
+  
+  // Plik
+  fileId           String?
+  fileStatus       FileStatus @default(PENDING)
+  
+  createdAt        DateTime   @default(now())
+
+  // Relacje
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+  material Material @relation(fields: [materialId], references: [id])
+  file     File?    @relation(fields: [fileId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  status    OrderStatus
+  note      String?     @db.Text
+  createdBy String? // User ID
+  createdAt DateTime    @default(now())
+
+  // Relacje
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_status_history")
+}
+
+// ============================================
+// PLIKI
+// ============================================
+
+model File {
+  id              String          @id @default(uuid())
+  userId          String
+  originalName    String
+  storagePath     String // MinIO/S3 path
+  thumbnailPath   String?
+  mimeType        String
+  size            Int // bytes
+  
+  // Metadane pliku
+  width           Float? // mm
+  height          Float? // mm
+  dpi             Int?
+  colorSpace      String?
+  pages           Int             @default(1)
+  
+  // Preflight
+  preflightStatus PreflightStatus @default(PENDING)
+  preflightReport Json? // szczegóły walidacji
+  
+  uploadedAt      DateTime        @default(now())
+
+  // Relacje
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+
+  @@index([userId])
+  @@index([preflightStatus])
+  @@map("files")
+}
+
+enum FileStatus {
+  PENDING   // Oczekuje na sprawdzenie
+  APPROVED  // Zatwierdzony
+  REJECTED  // Odrzucony
+  IN_REVIEW // W trakcie sprawdzania
+}
+
+enum PreflightStatus {
+  PENDING    // Oczekuje
+  PROCESSING // Przetwarzanie
+  APPROVED   // Zatwierdzony
+  WARNING    // Ostrzeżenia
+  REJECTED   // Odrzucony
+}
+
+// ============================================
+// PRODUKCJA
+// ============================================
+
+model Machine {
+  id                String        @id @default(uuid())
+  name              String
+  type              MachineType
+  status            MachineStatus @default(IDLE)
+  
+  // Aktualny materiał
+  currentJobId      String?       @unique
+  currentMaterial   MaterialType?
+  materialRemaining Float? // metry
+  
+  // Wydajność
+  speedM2PerHour    Float // m²/h
+  
+  // Konserwacja
+  lastMaintenance   DateTime?
+  nextMaintenance   DateTime?
+  maintenanceHours  Int           @default(0)
+  
+  active            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relacje
+  productionJobs ProductionJob[] @relation("AssignedMachine")
+  currentJob     ProductionJob?  @relation("CurrentMachine", fields: [currentJobId], references: [id])
+
+  @@index([type])
+  @@index([status])
+  @@map("machines")
+}
+
+enum MachineType {
+  PLOTTER_LATEX   // Plotter 1 - HP Latex - banery, plakaty
+  PLOTTER_SOLVENT // Plotter 2 - Solvent - naklejki, folie
+  LAMINATOR       // Laminator
+  CUTTER          // Ploter tnący
+}
+
+enum MachineStatus {
+  IDLE        // Bezczynny
+  WORKING     // Pracuje
+  MAINTENANCE // Konserwacja
+  ERROR       // Błąd
+  OFFLINE     // Wyłączony
+}
+
+model ProductionJob {
+  id               String           @id @default(uuid())
+  orderId          String
+  orderItemId      String // konkretna pozycja z zamówienia
+  
+  // Priorytet i status
+  priority         Int              @default(3) // 1=najwyższy, 5=najniższy
+  status           JobStatus        @default(QUEUED)
+  
+  // Przypisanie
+  machineId        String?
+  operatorId       String? // User ID operatora
+  
+  // Materiał i czasy
+  materialType     MaterialType
+  printTimeMin     Int // szacowany czas druku
+  finishingTimeMin Int? // szacowany czas wykończenia
+  
+  // Harmonogram
+  scheduledStart   DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  dueDate          DateTime
+  
+  // Notatki
+  notes            String?          @db.Text
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relacje
+  order          Order    @relation(fields: [orderId], references: [id])
+  machine        Machine? @relation("AssignedMachine", fields: [machineId], references: [id])
+  machineWorking Machine? @relation("CurrentMachine")
+
+  @@index([status])
+  @@index([priority, dueDate])
+  @@index([machineId])
+  @@map("production_jobs")
+}
+
+enum JobStatus {
+  QUEUED      // W kolejce
+  ASSIGNED    // Przypisane do maszyny
+  IN_PROGRESS // W trakcie
+  PAUSED      // Wstrzymane
+  COMPLETED   // Zakończone
+  FAILED      // Nieudane
+}
+
+// ============================================
+// MAGAZYN
+// ============================================
+
+model StockMovement {
+  id         String       @id @default(uuid())
+  materialId String
+  type       MovementType
+  quantity   Float // metry lub rolki
+  
+  // Kontekst
+  orderId    String? // jeśli związane z zamówieniem
+  note       String? @db.Text
+  createdBy  String? // User ID
+  
+  createdAt  DateTime     @default(now())
+
+  // Relacje
+  material Material @relation(fields: [materialId], references: [id])
+
+  @@index([materialId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+enum MovementType {
+  PURCHASE    // Zakup (zwiększa stan)
+  RESERVATION // Rezerwacja pod zamówienie
+  USAGE       // Zużycie w produkcji (zmniejsza stan)
+  RETURN      // Zwrot (zwiększa stan)
+  ADJUSTMENT  // Korekta inwentaryzacyjna
+  DAMAGE      // Uszkodzenie (zmniejsza stan)
+}
+
+// ============================================
+// STATYSTYKI I RAPORTY
+// ============================================
+
+model DailyStats {
+  id          String   @id @default(uuid())
+  date        DateTime @unique @db.Date
+  
+  // Zamówienia
+  ordersCount Int      @default(0)
+  revenue     Float    @default(0)
+  
+  // Produkcja
+  m2Printed   Float    @default(0)
+  jobsCompleted Int    @default(0)
+  
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@map("daily_stats")
+}
