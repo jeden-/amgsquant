@@ -4,8 +4,13 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "build": "nest build"
+    "build": "nest build",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@amgsquant/database": "file:../../packages/database",
@@ -16,7 +21,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.1",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-express": "^11.1.6",
     "@nestjs/swagger": "^11.2.1",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
@@ -24,6 +29,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "ioredis": "^5.8.1",
+    "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
