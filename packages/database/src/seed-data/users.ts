@@ -49,3 +49,4 @@ export const users: Prisma.UserCreateInput[] = [
     regon: '123456789',
   },
 ];
+

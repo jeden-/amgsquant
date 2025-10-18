@@ -55,3 +55,4 @@ export function calculateNetPrice(priceGross: number, vatRate = 23): number {
 export function comparePrices(price1: number, price2: number, tolerance = 0.01): boolean {
   return Math.abs(price1 - price2) <= tolerance;
 }
+

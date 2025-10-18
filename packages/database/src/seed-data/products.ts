@@ -214,3 +214,4 @@ export const products: Prisma.ProductCreateInput[] = [
     },
   },
 ];
+

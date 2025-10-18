@@ -151,3 +151,4 @@ export const materials: Prisma.MaterialCreateInput[] = [
     minStock: 8.0,
   },
 ];
+

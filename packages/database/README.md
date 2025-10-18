@@ -84,3 +84,4 @@ npx prisma studio
 | firma@example.com | Test1234! | BUSINESS | Klient biznesowy |
 | agencja@example.com | Test1234! | AGENCY | Agencja reklamowa |
 | klient@example.com | Test1234! | CUSTOMER | Klient indywidualny |
+

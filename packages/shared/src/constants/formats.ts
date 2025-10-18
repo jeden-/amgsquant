@@ -76,3 +76,4 @@ export const BANNER_FORMATS: Record<string, Format> = {
     area: 2.16,
   },
 };
+
